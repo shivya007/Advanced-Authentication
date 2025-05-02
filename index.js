@@ -14,7 +14,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 const options = {
-    origin: "http://localhost:5173",
+    origin: "https://advanced-auth-nine.vercel.app",
     credentials: true,
 }
 app.use(cors(options));
