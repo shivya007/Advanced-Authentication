@@ -74,6 +74,99 @@ const loginUser = asyncHandler(async(req, res, next) =>{
     })
 });
 
+
+// forgot password
+//step 1: User forgot password,  reset it by asking via email
+const forgotPassword = asyncHandler(async(req, res, next) =>{
+    try {
+        const {email} = req.body;
+        const user = await User.findOne({email});
+        if(!user){
+            return next(new AppError("User with this email does not exist", 401));
+        }
+        
+        // Generates OTP
+        const otp = Math.floor(100000 + Math.random() * 900000);
+        user.resetPasswordOTP = otp;
+        user.resetPasswordOTPExpiry = Date.now() + 5 * 60 * 1000; // 5 minutes expiry
+        await user.save();
+        await sendOTP(email, otp);
+    
+        res.status(200).json({
+            success: true,
+            message: "OTP sent to your email",
+        });
+    } catch (error) {
+        return next(new AppError(error || "Error while sending OTP", 401));
+    }
+});
+
+// step 2: User submits OTP, receives JWT on success
+const verifyForgotPasswordOTP = asyncHandler(async(req, res, next) =>{
+    try {
+        const {email, otp} = req.body;
+        const user = await User.findOne({email});
+        if(!user){
+            return next(new AppError("User with this email does not exist", 401));
+        }
+        if (!user.resetPasswordOTP || Date.now() > user.resetPasswordOTPExpiry) {
+            return next(new AppError("OTP expired, please try again", 401));
+        }
+
+        if (user.resetPasswordOTP !== otp) {
+            return next(new AppError("Invalid OTP", 401));
+        }
+
+        // generates a one time password reset token
+        const resetToken = jwt.sign({userId: user._id}, process.env.JWT_RESET_PASSWORD_SECRET, {expiresIn: "15m"});
+    
+        // Clear OTP after successful verification
+        user.resetPasswordOTP = null;
+        user.resetPasswordOTPExpiry = null;
+    
+        res.status(200).json({
+            success: true,
+            message: "OTP verified successfully",
+            resetToken, // send this token to the user for password reset
+        });
+    } catch (error) {
+        return next(new AppError(error || "Error while verifying OTP", 401));
+    }
+})
+
+// step 3: User resets password using the reset token
+const resetPassword = asyncHandler(async(req, res, next) =>{
+    try {
+        const {newPassword, token} = req.body;
+        if(!newPassword || !token){
+            return next(new AppError("All fields are required", 400));
+        }
+        // verify the token
+        const decoded = jwt.verify(token, process.env.JWT_RESET_PASSWORD_SECRET);
+        if(!decoded || !decoded.userId){
+            return next(new AppError("Invalid or expired token", 401));
+        }
+
+        // find the user and update password
+        const user = await User.findById(decoded.userId);
+        if(!user){
+            return next(new AppError("User not found", 404));
+        }
+
+        user.password = newPassword;
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Password updated successfully",
+        });
+    } catch (error) {
+        return next(new AppError(error || "Error while resetting password", 401));
+    }
+})
+
+
+
 // User submits OTP, receives JWT on success
 const verifyOTP = asyncHandler(async(req, res, next) =>{
     try {
@@ -221,29 +314,6 @@ const logout = asyncHandler(async (req, res, next) =>{
     })
 })
 
-/* const logout = asyncHandler(async(req, res, next) =>{
-    const {refreshToken} = req.cookies;
-    if(refreshToken){
-        await User.updateOne({
-            "refreshTokens.token":refreshToken 
-        },
-        {
-            $pull:{
-                refreshTokens: {
-                    token: refreshToken,
-                }
-            }
-        })
-    }
-    res.clearCookie("jwt"); // Clear access token
-    res.clearCookie("refreshToken");
-    res.status(200).json({
-        success: true,
-        message: "User logged Out Successfully",
-    })
-})
- */
 
 
-
-module.exports = {registerUser, loginUser, getProfile, refreshAccessToken, logout, verifyOTP};
+module.exports = {registerUser, loginUser, getProfile, refreshAccessToken, logout, verifyOTP, forgotPassword, verifyForgotPasswordOTP, resetPassword};

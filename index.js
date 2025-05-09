@@ -14,7 +14,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 const options = {
-    origin: "https://advanced-auth-nine.vercel.app",
+    origin: "https://advanced-auth-nine.vercel.app",          
     credentials: true,
 }
 app.use(cors(options));

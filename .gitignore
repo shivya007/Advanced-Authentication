@@ -33,4 +33,8 @@ dist-ssr
 *.sln
 *.sw?
 
+# Exclude specific project files
+controllers/userController.js
+routes/userRoutes.js
+
 

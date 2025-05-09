@@ -16,6 +16,9 @@ const userSchema = new mongoose.Schema({
         required: [true, "make another unique password"],
         unique: true,
     },
+    resetPasswordOTP: String,
+    resetPasswordOTPExpiry: Date,
+
     refreshTokens:[{
         token: String,
         expiresAt: Date,
