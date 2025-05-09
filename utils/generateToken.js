@@ -11,7 +11,7 @@ const generateAccessToken = (userId, res) =>{
     res.cookie("accessToken", token, {
         maxAge: 15 * 60 * 1000,
         httpOnly: true,
-        sameSite: "strict",
+        sameSite: process.env.NODE_ENV === "development" ? "lax" : "None",
         secure: process.env.NODE_ENV !== "development",
     });
 
@@ -31,7 +31,7 @@ const generateRefreshToken = (userId, res) =>{
     res.cookie("refreshToken", token, {
         maxAge: 7 * 24 * 60 * 60 * 1000,
         httpOnly: true,
-        sameSite: "strict",
+        sameSite: process.env.NODE_ENV === "development" ? "lax" : "None",
         secure: process.env.NODE_ENV !== "development",
     });
 

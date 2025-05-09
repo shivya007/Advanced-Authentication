@@ -7,13 +7,7 @@ const protect = asyncHandler(async (req, res, next) =>{
     
     try {
         // get jwt token from its cookies
-        console.log("See the request: ", req);
         const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
-
-        console.log("See the token: ", req.cookies?.accessToken);
-
-
-      
     
         if(!token){
             return next(new AppError("Unauthorized - No Token Provided", 401));
